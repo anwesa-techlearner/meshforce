@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
-import { simulateApi } from '@/lib/api';
+
+const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
 export function SimulateButton() {
   const [running, setRunning] = useState(false);
@@ -10,10 +11,19 @@ export function SimulateButton() {
     setRunning(true);
     setResult(null);
     try {
-      const res = await simulateApi.run() as { message: string };
-      setResult(res.message);
+      // Clear stale mock data first to avoid phone uniqueness conflicts
+      await fetch(`${BACKEND}/api/simulate/clear`, { method: 'DELETE' });
+
+      const res = await fetch(`${BACKEND}/api/simulate/run`, { method: 'POST' });
+      if (!res.ok) {
+        const text = await res.text();
+        setResult(`Error ${res.status}: ${text.slice(0, 120)}`);
+        return;
+      }
+      const data = await res.json() as { message: string };
+      setResult(data.message);
     } catch (e: unknown) {
-      setResult(e instanceof Error ? e.message : 'Simulation failed');
+      setResult(e instanceof Error ? `Network error: ${e.message}` : 'Failed to reach backend');
     } finally {
       setRunning(false);
     }
@@ -23,10 +33,12 @@ export function SimulateButton() {
     setRunning(true);
     setResult(null);
     try {
-      await simulateApi.clear();
-      setResult('Mock data cleared');
-    } catch {
-      setResult('Clear failed');
+      const res = await fetch(`${BACKEND}/api/simulate/clear`, { method: 'DELETE' });
+      if (!res.ok) { setResult(`Clear failed: ${res.status}`); return; }
+      const data = await res.json() as { message: string };
+      setResult(data.message);
+    } catch (e: unknown) {
+      setResult(e instanceof Error ? e.message : 'Clear failed');
     } finally {
       setRunning(false);
     }
@@ -35,18 +47,12 @@ export function SimulateButton() {
   return (
     <div className="space-y-2">
       <div className="flex gap-2">
-        <button
-          onClick={handleSimulate}
-          disabled={running}
-          className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:bg-slate-700 text-white text-xs font-semibold py-2 px-3 rounded transition-colors"
-        >
+        <button onClick={handleSimulate} disabled={running}
+          className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:bg-slate-700 text-white text-xs font-semibold py-2 px-3 rounded transition-colors">
           {running ? '⏳ Running...' : '⚡ Simulate'}
         </button>
-        <button
-          onClick={handleClear}
-          disabled={running}
-          className="flex-1 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 text-white text-xs font-semibold py-2 px-3 rounded transition-colors"
-        >
+        <button onClick={handleClear} disabled={running}
+          className="flex-1 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 text-white text-xs font-semibold py-2 px-3 rounded transition-colors">
           🗑 Clear
         </button>
       </div>
