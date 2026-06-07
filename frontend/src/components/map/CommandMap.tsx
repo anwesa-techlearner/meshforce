@@ -1,9 +1,12 @@
 'use client';
 import { useEffect, useRef } from 'react';
-import { useRealtimeVolunteers } from '@/hooks/useRealtimeVolunteers';
-import { useRealtimeIncidents } from '@/hooks/useRealtimeIncidents';
 import type { Incident } from '@/types/incident';
 import type { Volunteer } from '@/types/volunteer';
+
+interface Props {
+  volunteers: Volunteer[];
+  incidents: Incident[];
+}
 
 const PRAYAGRAJ: [number, number] = [25.4358, 81.8836];
 
@@ -33,26 +36,20 @@ const STATUS_COLOR: Record<string, string> = {
   active_idle: '#3b82f6', on_mission: '#ef4444', resting: '#eab308', offline: '#6b7280',
 };
 
-// Stable jitter per volunteer id
 function jitter(id: string): [number, number] {
   let h = 0;
   for (let i = 0; i < id.length; i++) h = (Math.imul(31, h) + id.charCodeAt(i)) | 0;
-  const lat = ((h & 0xffff) / 0xffff - 0.5) * 0.004;
-  const lng = (((h >> 16) & 0xffff) / 0xffff - 0.5) * 0.004;
-  return [lat, lng];
+  return [((h & 0xffff) / 0xffff - 0.5) * 0.004, (((h >> 16) & 0xffff) / 0xffff - 0.5) * 0.004];
 }
 
-export default function CommandMap() {
-  const volunteers = useRealtimeVolunteers();
-  const incidents = useRealtimeIncidents();
-
+export default function CommandMap({ volunteers, incidents }: Props) {
   const mapRef = useRef<HTMLDivElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mapInstanceRef = useRef<any>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const layersRef = useRef<any[]>([]);
 
-  // Initialise map once
+  // Initialise Leaflet map once
   useEffect(() => {
     if (typeof window === 'undefined' || !mapRef.current || mapInstanceRef.current) return;
     import('leaflet').then((L) => {
@@ -74,35 +71,35 @@ export default function CommandMap() {
     };
   }, []);
 
-  // Re-render all markers whenever data changes
+  // Re-render all markers/layers whenever realtime data changes
   useEffect(() => {
     if (!mapInstanceRef.current) return;
     import('leaflet').then((L) => {
       const map = mapInstanceRef.current;
 
-      // Clear previous layers
+      // Clear previous dynamic layers
       layersRef.current.forEach(l => map.removeLayer(l));
       layersRef.current = [];
 
-      // --- Sector rectangles (Demand-Supply Ratio colouring) ---
+      // Sector rectangles — coloured by Demand-Supply Ratio Rs
       Object.entries(SECTOR_BOUNDS).forEach(([secId, bounds]) => {
-        const secIncidents = incidents.filter(i => i.sector_id === secId).length;
-        const secActiveVols = volunteers.filter(v => v.sector_id === secId && v.status === 'active_idle').length;
-        const rs = secActiveVols === 0 ? 999 : secIncidents / secActiveVols;
+        const secInc = incidents.filter(i => i.sector_id === secId).length;
+        const secVols = volunteers.filter(v => v.sector_id === secId && v.status === 'active_idle').length;
+        const rs = secVols === 0 ? 999 : secInc / secVols;
         const color = rs > 1.5 ? '#dc2626' : rs >= 0.8 ? '#eab308' : '#22c55e';
-        const opacity = rs > 1.5 ? 0.4 : 0.15;
-        const rect = L.rectangle(bounds as [[number, number], [number, number]], {
-          color, weight: 2, fillColor: color, fillOpacity: opacity,
-        }).addTo(map).bindTooltip(`${secId} — Rs: ${rs === 999 ? '∞' : rs.toFixed(2)}`);
+        const rect = L.rectangle(bounds as [[number,number],[number,number]], {
+          color, weight: 2, fillColor: color,
+          fillOpacity: rs > 1.5 ? 0.4 : 0.15,
+          className: rs > 1.5 ? 'sector-critical' : '',
+        }).addTo(map).bindTooltip(`${secId} Rs:${rs === 999 ? '∞' : rs.toFixed(1)}`);
         layersRef.current.push(rect);
       });
 
-      // --- Incident markers ---
+      // Incident markers
       incidents.forEach((inc: Incident) => {
         const color = SEV_COLOR[inc.severity] ?? '#6b7280';
-        const pulse = inc.severity === 'CRITICAL' ? 'animation:pulse 1s infinite' : '';
         const icon = L.divIcon({
-          html: `<div style="background:${color};width:16px;height:16px;border-radius:50%;border:2px solid white;box-shadow:0 0 6px rgba(0,0,0,.6);${pulse}"></div>`,
+          html: `<div style="background:${color};width:16px;height:16px;border-radius:50%;border:2px solid white;box-shadow:0 0 6px rgba(0,0,0,.6)"></div>`,
           className: '', iconSize: [16, 16], iconAnchor: [8, 8],
         });
         const m = L.marker([inc.location_lat, inc.location_lng], { icon })
@@ -111,41 +108,38 @@ export default function CommandMap() {
         layersRef.current.push(m);
       });
 
-      // --- Volunteer markers ---
+      // Volunteer markers (stable jitter so they don't jump on re-render)
       volunteers.forEach((vol: Volunteer) => {
         const base = vol.sector_id ? SECTOR_COORDS[vol.sector_id] : null;
         if (!base) return;
         const [jLat, jLng] = jitter(vol.id);
-        const lat = base[0] + jLat;
-        const lng = base[1] + jLng;
         const color = STATUS_COLOR[vol.status] ?? '#6b7280';
         const icon = L.divIcon({
           html: `<div style="background:${color};width:10px;height:10px;border-radius:50%;border:1px solid white;opacity:0.9"></div>`,
           className: '', iconSize: [10, 10], iconAnchor: [5, 5],
         });
-        const m = L.marker([lat, lng], { icon })
+        const m = L.marker([base[0] + jLat, base[1] + jLng], { icon })
           .addTo(map)
-          .bindPopup(`<b>${vol.name}</b><br>${vol.status}<br>${vol.sector_id}<br>Skills: ${vol.skills?.join(', ') || '—'}`);
+          .bindPopup(`<b>${vol.name}</b><br>${vol.status}<br>${vol.sector_id}<br>${vol.skills?.join(', ') || '—'}`);
         layersRef.current.push(m);
       });
 
-      // --- Routing lines (dispatched incidents → assigned volunteers) ---
+      // Routing lines — dispatched incidents to assigned volunteers
       incidents
         .filter(i => i.status === 'dispatched' && i.assigned_volunteer_ids?.length > 0)
         .forEach(inc => {
-          const assignedVols = volunteers.filter(v => inc.assigned_volunteer_ids.includes(v.id));
-          assignedVols.forEach(vol => {
-            const base = vol.sector_id ? SECTOR_COORDS[vol.sector_id] : null;
-            if (!base) return;
-            const [jLat, jLng] = jitter(vol.id);
-            const vCoords: [number, number] = [base[0] + jLat, base[1] + jLng];
-            const iCoords: [number, number] = [inc.location_lat, inc.location_lng];
-            const line = L.polyline([vCoords, iCoords], {
-              color: '#a855f7', weight: 2, dashArray: '8 5', opacity: 0.85,
-              className: 'routing-line',
-            }).addTo(map);
-            layersRef.current.push(line);
-          });
+          volunteers
+            .filter(v => inc.assigned_volunteer_ids.includes(v.id) && v.sector_id)
+            .forEach(vol => {
+              const base = SECTOR_COORDS[vol.sector_id!];
+              if (!base) return;
+              const [jLat, jLng] = jitter(vol.id);
+              const line = L.polyline(
+                [[base[0] + jLat, base[1] + jLng], [inc.location_lat, inc.location_lng]],
+                { color: '#a855f7', weight: 2, dashArray: '8 5', opacity: 0.85, className: 'routing-line' }
+              ).addTo(map);
+              layersRef.current.push(line);
+            });
         });
     });
   }, [volunteers, incidents]);

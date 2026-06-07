@@ -8,14 +8,14 @@ import { IncidentFeed } from '@/components/sidebar/IncidentFeed';
 import { StatsHeader } from '@/components/sidebar/StatsHeader';
 import { SimulateButton } from '@/components/ui/SimulateButton';
 
-// CommandMap uses its own realtime hooks internally + must be client-only (Leaflet)
+// No SSR — Leaflet requires window
 const CommandMap = dynamic(() => import('@/components/map/CommandMap'), { ssr: false });
 
 export default function AdminPage() {
   const router = useRouter();
   const [authed, setAuthed] = useState(false);
 
-  // Hooks for sidebar — CommandMap has its own internal copies
+  // Single source of truth — passed to both sidebar and map
   const volunteers = useRealtimeVolunteers();
   const incidents = useRealtimeIncidents();
 
@@ -48,9 +48,9 @@ export default function AdminPage() {
         </div>
       </aside>
 
-      {/* Map 70% — self-contained realtime */}
+      {/* Map 70% — receives same data, no duplicate subscriptions */}
       <main className="flex-1">
-        <CommandMap />
+        <CommandMap volunteers={volunteers} incidents={incidents} />
       </main>
     </div>
   );
