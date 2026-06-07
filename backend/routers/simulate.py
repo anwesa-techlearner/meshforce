@@ -9,7 +9,7 @@ from db.supabase_client import get_supabase
 from services.dispatch import dispatch_volunteers
 from constants.sectors import SECTORS, SKILLS, LANGUAGES
 
-router = APIRouter(prefix="/api/simulate", tags=["simulate"])
+router = APIRouter(prefix="/simulate", tags=["simulate"])
 
 MOCK_INCIDENTS = [
     {"raw_text": "Elderly man collapsed at Sangam Nose, unconscious", "severity": "CRITICAL",

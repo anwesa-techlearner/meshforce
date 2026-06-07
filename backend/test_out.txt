@@ -1,0 +1,3 @@
+simulate prefix: /api/simulate
+sms prefix: /api/sms
+OK

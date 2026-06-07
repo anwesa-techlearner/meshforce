@@ -8,7 +8,7 @@ from services.llm_parser import parse_incident
 from services.dispatch import dispatch_volunteers
 from constants.sectors import SECTOR_BY_ID
 
-router = APIRouter(prefix="/api/incidents", tags=["incidents"])
+router = APIRouter(prefix="/incidents", tags=["incidents"])
 
 
 @router.post("/report")

@@ -10,6 +10,8 @@ load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '.env'))
 
 from routers.incidents import router as incidents_router
 from routers.volunteers import router as volunteers_router
+from routers.simulate import router as simulate_router
+from routers.sms import router as sms_router
 
 app = FastAPI(title="MeshForce API", version="0.1.0")
 
@@ -21,8 +23,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(incidents_router)
-app.include_router(volunteers_router)
+app.include_router(volunteers_router, prefix="/api")
+app.include_router(incidents_router, prefix="/api")
+app.include_router(simulate_router, prefix="/api")
+app.include_router(sms_router, prefix="/api")
 
 
 @app.get("/health")

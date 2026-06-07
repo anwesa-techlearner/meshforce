@@ -1,0 +1,19 @@
+Routes:
+  /openapi.json
+  /docs
+  /docs/oauth2-redirect
+  /redoc
+  /api/incidents/report
+  /api/incidents
+  /api/incidents/{incident_id}
+  /api/incidents/{incident_id}/resolve
+  /api/volunteers
+  /api/volunteers
+  /api/volunteers/{volunteer_id}
+  /api/volunteers/{volunteer_id}/status
+  /api/volunteers/{volunteer_id}
+  /api/simulate/run
+  /api/simulate/clear
+  /api/simulate/stats
+  /api/sms/inbound
+  /health

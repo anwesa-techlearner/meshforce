@@ -8,7 +8,7 @@ from services.llm_parser import parse_incident
 from services.dispatch import dispatch_volunteers
 from constants.sectors import SECTOR_BY_ID
 
-router = APIRouter(prefix="/api/sms", tags=["sms"])
+router = APIRouter(prefix="/sms", tags=["sms"])
 
 
 @router.post("/inbound")

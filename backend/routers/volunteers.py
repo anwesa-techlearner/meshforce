@@ -6,7 +6,7 @@ from db.supabase_client import get_supabase
 from models.volunteer import VolunteerCreate, VolunteerStatusPatch
 from constants.sectors import SECTOR_BY_ID
 
-router = APIRouter(prefix="/api/volunteers", tags=["volunteers"])
+router = APIRouter(prefix="/volunteers", tags=["volunteers"])
 
 
 @router.post("", status_code=201)
