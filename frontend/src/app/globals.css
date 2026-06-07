@@ -25,3 +25,16 @@ body {
     text-wrap: balance;
   }
 }
+
+@keyframes dash {
+  to { stroke-dashoffset: -20; }
+}
+
+.routing-line {
+  animation: dash 0.5s linear infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.3); }
+}
