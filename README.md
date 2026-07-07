@@ -3,7 +3,7 @@
 > Real-time volunteer coordination system with AI incident parsing, scoring engine, and live map dashboard.
 
 **Live Demo:**
-- Frontend (Vercel): https://meshforce.vercel.app
+- Frontend (Vercel): https://meshforce-kiro.vercel.app
 - Backend API (Render): https://meshforce-api.onrender.com/docs
 
 ---
