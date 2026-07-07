@@ -25,9 +25,16 @@ export function RegisterForm() {
     setLoading(true);
     setError('');
     try {
-      const vol = await volunteersApi.create(form) as { id: string };
+      // Normalize phone to E.164 — prepend +91 if no country code given
+      let phone = form.phone.trim().replace(/\s+/g, '');
+      if (!phone.startsWith('+')) {
+        // Bare 10-digit Indian number → prepend +91
+        phone = '+91' + phone.replace(/^0+/, '');
+      }
+      const vol = await volunteersApi.create({ ...form, phone }) as { id: string };
       localStorage.setItem('volunteerId', vol.id);
       localStorage.setItem('volunteerName', form.name);
+      localStorage.setItem('volunteerSector', form.sector_id);
       router.push('/volunteer');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Registration failed');
@@ -51,10 +58,12 @@ export function RegisterForm() {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-slate-300 mb-1">Phone (E.164) *</label>
+        <label className="block text-sm font-medium text-slate-300 mb-1">Phone *</label>
         <input required value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })}
           className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white focus:outline-none focus:border-blue-500"
-          placeholder="+919876543210" />
+          placeholder="9876543210 or +919876543210"
+          inputMode="tel" />
+        <p className="text-xs text-slate-500 mt-1">Indian number: enter 10 digits, +91 added automatically</p>
       </div>
 
       <div>
