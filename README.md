@@ -5,6 +5,7 @@
 **Live Demo:**
 - Frontend (Vercel): https://meshforce-kiro.vercel.app
 - Backend API (Render): https://meshforce-api.onrender.com/docs
+- LOOM DEMO VIDEO: https://www.loom.com/share/d6f718f99ca74f8e9816a1bdd21a7d7a
 
 ---
 
